@@ -1,0 +1,4 @@
+*.csv*
+*.zip
+eeg/.ipynb_checkpoints/*
+eeg/data
