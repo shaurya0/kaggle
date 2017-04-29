@@ -1,4 +1,6 @@
-*.csv*
+*.csv
+*.pyc
 *.zip
 eeg/.ipynb_checkpoints/*
 eeg/data
+eeg/__pycache__/*
