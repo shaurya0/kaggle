@@ -6,29 +6,20 @@ import numpy as np
 import os
 import glob
 
-def get_train_files(train_dir_path):
-    train_files = glob.glob(os.path.join(train_dir_path, '*_data.csv'))
-    train_files.sort()
-    return train_files
+def get_files(dir_path, pattern):
+    files = glob.glob(os.path.join(dir_path, pattern))
+    files.sort()
+    return files
 
-def get_label_files(train_dir_path):
-    label_files = glob.glob(os.path.join(train_dir_path, '*_events.csv'))
-    label_files.sort()
-    return label_files
-
-def load_data(file_path):
-    tmp = np.loadtxt(file_path, delimiter=',', dtype=np.float32, skiprows=1, usecols=tuple(range(1,31)))
-    return tmp
-
-def load_labels(file_path):
-    tmp = np.loadtxt(file_path, delimiter=',', dtype=np.float32, skiprows=1, usecols=tuple(range(1,6)))
+def load_csv_data(file_path, dtype, columns):
+    tmp = np.loadtxt(file_path, delimiter=',', dtype=dtype, skiprows=1, usecols=tuple(columns))
     return tmp
 
 def get_raw_train_data(train_files):
     data_as_list = list()
     num_rows = 0
     for train_file in train_files:
-        train_data = load_data(train_file)
+        train_data = load_csv_data(train_file, dtype=np.float32)
         num_rows += train_data.shape[0]
         data_as_list.append(train_data)
     num_cols = data_as_list[0].shape[1]
@@ -41,11 +32,6 @@ def get_raw_train_data(train_files):
         data_as_array[row_idx:end_idx,:] = train_data
         row_idx += train_data.shape[0]
     return data_as_array, data_as_list
-
-def pickle_scaler(scaler):
-    scaler_file_path = os.path.join('data', 'scaler.pkl')
-    with open(scaler_file_path, 'wb') as fid:
-        pickle.dump(scaler, fid)
 
 def pickle_obj(obj, file_name):
     file_path = os.path.join('data', file_name)
