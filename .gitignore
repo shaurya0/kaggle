@@ -1,7 +1,4 @@
-*.csv
-*.pyc
-*.zip
-*.sublime-workspace
-eeg/.ipynb_checkpoints/*
-eeg/data
-eeg/__pycache__/*
+!*.py
+!*.ipynb
+!*.gitignore
+!*.sublime-project
