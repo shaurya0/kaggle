@@ -1,4 +1,4 @@
-!*.py
-!*.ipynb
-!*.gitignore
-!*.sublime-project
+*.jpg
+*.csv
+*.pyc
+*checkpoints*
