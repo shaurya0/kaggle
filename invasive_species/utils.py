@@ -2,6 +2,7 @@ import os
 import shutil
 import glob
 import numpy as np
+import pandas
 
 def create_labelled_folders(train_folder, labels_csv, label_names):
     train_files = glob.glob(os.path.join(train_folder, '*.jpg'))
