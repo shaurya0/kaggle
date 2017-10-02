@@ -3,3 +3,5 @@
 *.pyc
 *checkpoints*
 *.zip
+*.npy
+*.h5
