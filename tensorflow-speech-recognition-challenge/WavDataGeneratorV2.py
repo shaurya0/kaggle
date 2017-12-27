@@ -1,12 +1,11 @@
 import numpy as np
-from ThreadSafeGenerator import ThreadSafeGenerator
 import librosa
 from os.path import join as path_join
 import glob
 
 
-class WavDataGenerator(object):
-    def __init__(self, data_dir, labels, nx, ny, batch_size=32, sampling_rate=16000, shuffle=True):
+class WavDataGeneratorV2(object):
+    def __init__(self, data_dir, labels, nx, ny, sampling_rate=16000, shuffle=True):
         self.labels_str = labels
         self.num_labels = len(labels)
         self.subfolders = [path_join(data_dir, l) for l in labels]
@@ -28,7 +27,6 @@ class WavDataGenerator(object):
 
         self.files = np.array(self.files)
         self.labels = np.array(self.labels, dtype=np.int32)
-        self.batch_size = batch_size
         self._num_examples = total_num_files
         self.indices = np.arange(0, total_num_files, dtype=np.int32)
         self.idx = 0
@@ -52,29 +50,25 @@ class WavDataGenerator(object):
         self.files = self.files[self.indices]
         self.labels = self.labels[self.indices]
 
-    def _load_batch(self, indices):
-        batch_data = np.empty((self.batch_size, self.nx, self.ny), dtype=np.float32)
-        batch_labels = np.zeros((self.batch_size, self.num_labels), dtype=np.float32)
-        for (i, k) in enumerate(indices):
-            file_path = self.files[k]
-            label = self.labels[k]
-            X, _ = librosa.load(file_path, sr=self.sampling_rate)
-            batch_data[i] = self._preprocess_recording(X)
-            batch_labels[i][label] = 1.0
+    def _load_sample(self, idx):
+        X = np.empty((self.nx, self.ny), dtype=np.float32)
+        y = np.zeros((self.num_labels), dtype=np.float32)
+        # for (i, k) in enumerate(indices):
+        file_path = self.files[idx]
+        label = self.labels[idx]
+        raw_audio, _ = librosa.load(file_path, sr=self.sampling_rate)
+        X = self._preprocess_recording(raw_audio)
+        y[label] = 1.0
 
-        return batch_data, batch_labels
+        return X, y
 
-    # @ThreadSafeGenerator
     def generator(self):
-        batch_size = self.batch_size
-        indices = np.zeros((batch_size,), dtype=np.int32)
         start = 0
-        end = self._num_examples - batch_size
+        end = self._num_examples
 
         while True:
             if self.shuffle:
                 self._shuffle_data()
-            for i in range(start, end, batch_size):
-                indices = np.arange(i, i + batch_size)
-                batch_data, batch_labels = self._load_batch(indices)
-                yield batch_data, batch_labels
+            for i in range(start, end):
+                X, y = self._load_sample(i)
+                yield X, y

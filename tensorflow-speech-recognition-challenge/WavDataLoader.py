@@ -1,12 +1,11 @@
 import numpy as np
-from ThreadSafeGenerator import ThreadSafeGenerator
 import librosa
 from os.path import join as path_join
 import glob
 
 
-class WavDataGenerator(object):
-    def __init__(self, data_dir, labels, nx, ny, batch_size=32, sampling_rate=16000, shuffle=True):
+class WavDataLoader(object):
+    def __init__(self, data_dir, labels, nx, ny, sampling_rate=16000, shuffle=True):
         self.labels_str = labels
         self.num_labels = len(labels)
         self.subfolders = [path_join(data_dir, l) for l in labels]
@@ -28,10 +27,28 @@ class WavDataGenerator(object):
 
         self.files = np.array(self.files)
         self.labels = np.array(self.labels, dtype=np.int32)
-        self.batch_size = batch_size
         self._num_examples = total_num_files
         self.indices = np.arange(0, total_num_files, dtype=np.int32)
         self.idx = 0
+
+        self.load_data()
+
+    def load_data(self):
+        start = 0
+        end = self._num_examples
+        if self.shuffle:
+            self._shuffle_data()
+
+        X = np.empty((self._num_examples, self.nx, self.ny), dtype=np.float32)
+        y = np.zeros((self._num_examples), dtype=np.float32)
+
+
+        for i in range(start, end):
+            X[i], y[i] = self._load_sample(i)             
+
+        self.X = X
+        self.y = y
+
 
     @property
     def num_examples(self):
@@ -52,29 +69,17 @@ class WavDataGenerator(object):
         self.files = self.files[self.indices]
         self.labels = self.labels[self.indices]
 
-    def _load_batch(self, indices):
-        batch_data = np.empty((self.batch_size, self.nx, self.ny), dtype=np.float32)
-        batch_labels = np.zeros((self.batch_size, self.num_labels), dtype=np.float32)
-        for (i, k) in enumerate(indices):
-            file_path = self.files[k]
-            label = self.labels[k]
-            X, _ = librosa.load(file_path, sr=self.sampling_rate)
-            batch_data[i] = self._preprocess_recording(X)
-            batch_labels[i][label] = 1.0
+    def _load_sample(self, idx):
+        file_path = self.files[idx]
+        label = self.labels[idx]
+        raw_audio, _ = librosa.load(file_path, sr=self.sampling_rate)
+        X = self._preprocess_recording(raw_audio)
 
-        return batch_data, batch_labels
+        return X, label
 
-    # @ThreadSafeGenerator
-    def generator(self):
-        batch_size = self.batch_size
-        indices = np.zeros((batch_size,), dtype=np.int32)
-        start = 0
-        end = self._num_examples - batch_size
 
-        while True:
-            if self.shuffle:
-                self._shuffle_data()
-            for i in range(start, end, batch_size):
-                indices = np.arange(i, i + batch_size)
-                batch_data, batch_labels = self._load_batch(indices)
-                yield batch_data, batch_labels
+if __name__ == "__main__":
+    labels = ['silence', 'yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
+    data_dir = r'C:\Development\kaggle\tensorflow-speech-recognition-challenge\data\train\audio'
+    wdl = WavDataLoader(data_dir, labels, 128,32)
+    print('hello world')
