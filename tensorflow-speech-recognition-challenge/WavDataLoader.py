@@ -35,16 +35,17 @@ class WavDataLoader(object):
 
     def load_data(self):
         start = 0
-        end = self._num_examples
+        length = self._num_examples
+        # length = 2000
         if self.shuffle:
             self._shuffle_data()
 
-        X = np.empty((self._num_examples, self.nx, self.ny), dtype=np.float32)
-        y = np.zeros((self._num_examples), dtype=np.float32)
+        X = np.empty((length, self.nx, self.ny, 1), dtype=np.float32)
+        y = np.zeros((length), dtype=np.float32)
 
 
-        for i in range(start, end):
-            X[i], y[i] = self._load_sample(i)             
+        for i in range(start, length):
+            X[i,:,:,0], y[i] = self._load_sample(i)
 
         self.X = X
         self.y = y
@@ -62,7 +63,10 @@ class WavDataLoader(object):
             tmp = np.zeros((zero_pad_length, ), dtype=np.float32)
             x = np.concatenate((tmp, x), axis=0)
 
-        return librosa.feature.melspectrogram(y=x, sr=sr, n_mels=128, fmax=8000, hop_length=512)
+        result = librosa.feature.melspectrogram(y=x, sr=sr, n_mels=128, fmax=8000, hop_length=512)
+        result = librosa.core.logamplitude(result)
+        result = librosa.util.normalize(result, axis=0)
+        return result
 
     def _shuffle_data(self):
         np.random.shuffle(self.indices)
@@ -78,8 +82,7 @@ class WavDataLoader(object):
         return X, label
 
 
-if __name__ == "__main__":
-    labels = ['silence', 'yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
-    data_dir = r'C:\Development\kaggle\tensorflow-speech-recognition-challenge\data\train\audio'
-    wdl = WavDataLoader(data_dir, labels, 128,32)
-    print('hello world')
+#if __name__ == "__main__":
+#    labels = ['silence', 'yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go']
+#    data_dir = r'C:\Development\kaggle\tensorflow-speech-recognition-challenge\data\train\audio'
+#    wdl = WavDataLoader(data_dir, labels, 128,32)

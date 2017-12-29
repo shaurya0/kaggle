@@ -1,4 +1,5 @@
 *.jpg
+*.pyproj
 *.csv
 *.pyc
 *checkpoints*
@@ -9,3 +10,5 @@
 *.json
 *.wav
 *.7z
+*.sln
+*.vs
