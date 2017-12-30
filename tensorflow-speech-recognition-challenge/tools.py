@@ -4,6 +4,7 @@ from os.path import join as path_join
 from os import mkdir
 from os.path import isdir
 import glob
+import numpy as np
 
 from random import shuffle
 from shutil import move as file_move
@@ -40,3 +41,16 @@ def split_train_validation(labels, split_fraction, input_dir, output_dir):
         for wav_file in wav_files_to_move:
             output_file = path_join(output_subfolder, basename(wav_file))
             file_move(wav_file, output_file)
+
+def preprocess_recording(x, sr):
+    length = len(x)
+    if length < sr:
+        zero_pad_length = sr - length
+        tmp = np.zeros((zero_pad_length, ), dtype=np.float32)
+        x = np.concatenate((tmp, x), axis=0)
+
+    result = librosa.feature.melspectrogram(y=x, sr=sr, n_mels=128, fmax=8000, hop_length=512)
+    result = librosa.core.logamplitude(result)
+    result = librosa.util.normalize(result, axis=0)
+    result = result[:, :, np.newaxis]
+    return result

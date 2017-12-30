@@ -1,6 +1,7 @@
 import numpy as np
 import librosa
 from os.path import join as path_join
+from tools import preprocess_recording
 import glob
 
 
@@ -45,7 +46,7 @@ class WavDataLoader(object):
 
 
         for i in range(start, length):
-            X[i,:,:,0], y[i] = self._load_sample(i)
+            X[i], y[i] = self._load_sample(i)
 
         self.X = X
         self.y = y
@@ -54,19 +55,6 @@ class WavDataLoader(object):
     @property
     def num_examples(self):
         return self._num_examples
-
-    def _preprocess_recording(self, x):
-        length = len(x)
-        sr = self.sampling_rate
-        if length < sr:
-            zero_pad_length = sr - length
-            tmp = np.zeros((zero_pad_length, ), dtype=np.float32)
-            x = np.concatenate((tmp, x), axis=0)
-
-        result = librosa.feature.melspectrogram(y=x, sr=sr, n_mels=128, fmax=8000, hop_length=512)
-        result = librosa.core.logamplitude(result)
-        result = librosa.util.normalize(result, axis=0)
-        return result
 
     def _shuffle_data(self):
         np.random.shuffle(self.indices)
@@ -77,7 +65,7 @@ class WavDataLoader(object):
         file_path = self.files[idx]
         label = self.labels[idx]
         raw_audio, _ = librosa.load(file_path, sr=self.sampling_rate)
-        X = self._preprocess_recording(raw_audio)
+        X = preprocess_recording(raw_audio, sr=self.sampling_rate)
 
         return X, label
 
