@@ -78,9 +78,10 @@ class WavDataGenerator(object):
         while True:
             if self.shuffle:
                 self._shuffle_data()
+
             for i in range(start, end, batch_size):
                 indices = np.arange(i, i + batch_size)
-                batch_data, batch_labels = self._load_batch(indices)
+                batch_data, batch_labels = self._load_batch(indices, batch_size)
                 yield batch_data, batch_labels
 
     @ThreadSafeGenerator
