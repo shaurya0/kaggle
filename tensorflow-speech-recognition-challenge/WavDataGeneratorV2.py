@@ -1,7 +1,10 @@
 import numpy as np
+from ThreadSafeGenerator import ThreadSafeGenerator
 import librosa
 from os.path import join as path_join
+from tools import preprocess_recording
 import glob
+
 
 
 class WavDataGeneratorV2(object):
@@ -35,30 +38,20 @@ class WavDataGeneratorV2(object):
     def num_examples(self):
         return self._num_examples
 
-    def _preprocess_recording(self, x):
-        length = len(x)
-        sr = self.sampling_rate
-        if length < sr:
-            zero_pad_length = sr - length
-            tmp = np.zeros((zero_pad_length, ), dtype=np.float32)
-            x = np.concatenate((tmp, x), axis=0)
-
-        return librosa.feature.melspectrogram(y=x, sr=sr, n_mels=128, fmax=8000, hop_length=512)
-
     def _shuffle_data(self):
         np.random.shuffle(self.indices)
         self.files = self.files[self.indices]
         self.labels = self.labels[self.indices]
 
     def _load_sample(self, idx):
-        X = np.empty((self.nx, self.ny), dtype=np.float32)
+        X = np.empty((self.nx, self.ny,1), dtype=np.float32)
         y = np.zeros((self.num_labels), dtype=np.float32)
-        # for (i, k) in enumerate(indices):
-        file_path = self.files[idx]
         label = self.labels[idx]
-        raw_audio, _ = librosa.load(file_path, sr=self.sampling_rate)
-        X = self._preprocess_recording(raw_audio)
         y[label] = 1.0
+
+        file_path = self.files[idx]
+        raw_audio, _ = librosa.load(file_path, sr=self.sampling_rate)
+        X = preprocess_recording(raw_audio, sr=self.sampling_rate)
 
         return X, y
 
