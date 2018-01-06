@@ -1,7 +1,7 @@
 import numpy as np
 import librosa
 from os.path import join as path_join
-from tools import preprocess_recording
+from tools import preprocess_recording_dict
 import glob
 
 
@@ -65,7 +65,8 @@ class WavDataLoader(object):
         file_path = self.files[idx]
         label = self.labels[idx]
         raw_audio, _ = librosa.load(file_path, sr=self.sampling_rate)
-        X = preprocess_recording(raw_audio, sr=self.sampling_rate)
+        data = preprocess_recording_dict(raw_audio, sr=self.sampling_rate)
+        X = data['mfcc']
 
         return X, label
 

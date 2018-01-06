@@ -54,3 +54,21 @@ def preprocess_recording(x, sr):
     result = librosa.util.normalize(result, axis=0)
     result = result[:, :, np.newaxis]
     return result
+
+def preprocess_recording_dict(x, sr):
+    length = len(x)
+    if length < sr:
+        zero_pad_length = sr - length
+        tmp = np.zeros((zero_pad_length, ), dtype=np.float32)
+        x = np.concatenate((tmp, x), axis=0)
+
+    melspectrogram = librosa.feature.melspectrogram(y=x, sr=sr, n_mels=128, fmax=8000, hop_length=512)
+    log_melspectrogram = librosa.core.logamplitude(melspectrogram)
+    log_melspectrogram -= np.mean(log_melspectrogram, axis=0)
+    log_melspectrogram /= (np.std(log_melspectrogram) + 1e-6)
+
+    mfcc = librosa.feature.mfcc(S=librosa.power_to_db(melspectrogram), n_mfcc=40)
+    mfcc -= np.mean(mfcc, axis=0)
+    mfcc /= (np.std(mfcc) + 1e-6)
+
+    return {"log_melspectrogram" : log_melspectrogram[:, :, np.newaxis], "mfcc" : mfcc[:, :, np.newaxis]}
