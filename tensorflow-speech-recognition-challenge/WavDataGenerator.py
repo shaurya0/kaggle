@@ -7,15 +7,17 @@ import glob
 
 
 class WavDataGenerator(object):
-    def __init__(self, data_dir, labels, nx, ny, is_train=False, batch_size=32, sampling_rate=16000, shuffle=True):
+    def __init__(self, data_dir, labels, one_hot_encode=True, is_train=False, batch_size=32, sampling_rate=16000, shuffle=True):
         self.labels_str = labels
         self.num_labels = len(labels)
         self.files = list()
         self.labels = list()
         self.shuffle = shuffle
         self.sampling_rate = sampling_rate
-        self.nx = nx
-        self.ny = ny
+        self.one_hot_encode = one_hot_encode
+        self.is_train = is_train
+        self.batch_size = batch_size
+
 
         total_num_files = 0
 
@@ -34,13 +36,14 @@ class WavDataGenerator(object):
             total_num_files += num_files
             self.files.extend(files)
 
-        self.is_train = is_train
         self.files = np.array(self.files)
         self.labels = np.array(self.labels, dtype=np.int32)
-        self.batch_size = batch_size
         self._num_examples = total_num_files
         self.indices = np.arange(0, total_num_files, dtype=np.int32)
-        self.idx = 0
+
+        self.batch_shapes = get_shapes(self.files[0])
+        self.batch_shapes['log_melspectrogram'].insert(0, batch_size)
+        self.batch_shapes['mfcc'].insert(0, batch_size)
 
     @property
     def num_examples(self):
@@ -53,17 +56,29 @@ class WavDataGenerator(object):
         self.labels = self.labels[self.indices]
 
     def _load_batch(self, indices, batch_size):
-        batch_data = np.empty((batch_size, self.nx, self.ny, 1), dtype=np.float32)
-        batch_labels = np.zeros((batch_size, self.num_labels), dtype=np.float32)
+        batch_data = {
+            'log_melspectrogram' : np.empty(self.batch_shapes['log_melspectrogram'], dtype=np.float32),
+            'mfcc' : np.empty(self.batch_shapes['mfcc'], dtype=np.float32)
+            }
+
+
+        if self.one_hot_encode:
+            batch_labels = np.zeros((batch_size, self.num_labels), dtype=np.float32)
+        else:
+            batch_labels = np.zeros((batch_size), dtype=np.float32)
+
         for (i, k) in enumerate(indices):
             file_path = self.files[k]
-            raw_audio, _ = librosa.load(file_path, sr=self.sampling_rate)
-            preprocessed_data = preprocess_recording_dict(raw_audio, sr=self.sampling_rate)
-            batch_data[i] = preprocessed_data['mfcc']
+            preprocessed_data = load_sample(file_path)
+            batch_data['mfcc'] = preprocessed_data['mfcc']
+            batch_data['log_melspectrogram'] = preprocessed_data['log_melspectrogram']
 
             if self.is_train:
                 label = self.labels[k]
-                batch_labels[i][label] = 1.0
+                if self.one_hot_encode:
+                    batch_labels[i][label] = 1.0
+                else:
+                    batch_labels[i] = label
 
         return batch_data, batch_labels
 
@@ -87,7 +102,6 @@ class WavDataGenerator(object):
 
     @ThreadSafeGenerator
     def single_pass_generator(self):
-        assert(self.is_train == False)
         finished = False
         batch_size = self.batch_size
         indices = np.zeros((batch_size,), dtype=np.int32)
@@ -98,8 +112,11 @@ class WavDataGenerator(object):
             if i + batch_size >= end:
                 break
             indices = np.arange(i, i + batch_size)
-            batch_data, _ = self._load_batch(indices, batch_size)
-            yield batch_data
+            batch_data, batch_labels = self._load_batch(indices, batch_size)
+            if self.is_train:
+                yield batch_data, batch_labels
+            else:
+                yield batch_data
 
         if (end%batch_size) == 0:
             finished = True

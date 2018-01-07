@@ -49,19 +49,6 @@ def preprocess_recording(x, sr):
         tmp = np.zeros((zero_pad_length, ), dtype=np.float32)
         x = np.concatenate((tmp, x), axis=0)
 
-    result = librosa.feature.melspectrogram(y=x, sr=sr, n_mels=128, fmax=8000, hop_length=512)
-    result = librosa.core.logamplitude(result)
-    result = librosa.util.normalize(result, axis=0)
-    result = result[:, :, np.newaxis]
-    return result
-
-def preprocess_recording_dict(x, sr):
-    length = len(x)
-    if length < sr:
-        zero_pad_length = sr - length
-        tmp = np.zeros((zero_pad_length, ), dtype=np.float32)
-        x = np.concatenate((tmp, x), axis=0)
-
     melspectrogram = librosa.feature.melspectrogram(y=x, sr=sr, n_mels=128, fmax=8000, hop_length=512)
     log_melspectrogram = librosa.core.logamplitude(melspectrogram)
     log_melspectrogram -= np.mean(log_melspectrogram, axis=0)
@@ -72,3 +59,17 @@ def preprocess_recording_dict(x, sr):
     mfcc /= (np.std(mfcc) + 1e-6)
 
     return {"log_melspectrogram" : log_melspectrogram[:, :, np.newaxis], "mfcc" : mfcc[:, :, np.newaxis]}
+
+
+def load_sample(file_path):
+    raw_audio, _ = librosa.load(file_path, sr=self.sampling_rate)
+    sample = preprocess_recording(raw_audio, sr=self.sampling_rate)
+
+    return sample
+
+def get_shapes(example_filepath):
+    shapes = {}
+    sample, _ = load_sample(example_filepath)
+    shapes['mfcc'] = list(sample['mfcc'].shape)
+    shapes['log_melspectrogram'] = list(sample['log_melspectrogram'].shape)
+    return shapes
