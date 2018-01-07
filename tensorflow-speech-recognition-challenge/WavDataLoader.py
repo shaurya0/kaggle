@@ -18,12 +18,6 @@ class WavDataLoader(object):
         total_num_files = 0
         for (i, sf) in enumerate(self.subfolders):
             files = glob.glob(path_join(sf, '*.wav'))
-
-# REMOVE
-            files = files[:25]
-
-
-
             num_files = len(files)
             total_num_files += num_files
 
