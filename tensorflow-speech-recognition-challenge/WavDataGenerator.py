@@ -2,7 +2,7 @@ import numpy as np
 from ThreadSafeGenerator import ThreadSafeGenerator
 import librosa
 from os.path import join as path_join
-from tools import preprocess_recording
+from tools import preprocess_recording_dict
 import glob
 
 
@@ -58,7 +58,8 @@ class WavDataGenerator(object):
         for (i, k) in enumerate(indices):
             file_path = self.files[k]
             raw_audio, _ = librosa.load(file_path, sr=self.sampling_rate)
-            batch_data[i] = preprocess_recording(raw_audio, sr=self.sampling_rate)
+            preprocessed_data = preprocess_recording_dict(raw_audio, sr=self.sampling_rate)
+            batch_data[i] = preprocessed_data['mfcc']
 
             if self.is_train:
                 label = self.labels[k]
